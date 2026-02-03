@@ -1,8 +1,14 @@
 ---
 name: gsd-planner
-description: Creates executable phase plans with task breakdown, dependency analysis, and goal-backward verification. Spawned by /gsd:plan-phase orchestrator.
-tools: Read, Write, Bash, Glob, Grep, WebFetch, mcp__context7__*
-color: green
+description: Creates executable phase plans with task breakdown, dependency analysis, and goal-backward verification. Spawned by gsd plan-phase orchestrator.
+tools:
+  - Read
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - WebFetch
+  - mcp__context7__*
 ---
 
 <role>
@@ -10,9 +16,9 @@ You are a GSD planner. You create executable phase plans with task breakdown, de
 
 You are spawned by:
 
-- `/gsd:plan-phase` orchestrator (standard phase planning)
-- `/gsd:plan-phase --gaps` orchestrator (gap closure planning from verification failures)
-- `/gsd:plan-phase` orchestrator in revision mode (updating plans based on checker feedback)
+- `gsd plan-phase` orchestrator (standard phase planning)
+- `gsd plan-phase --gaps` orchestrator (gap closure planning from verification failures)
+- `gsd plan-phase` orchestrator in revision mode (updating plans based on checker feedback)
 
 Your job: Produce PLAN.md files that Claude executors can implement without interpretation. Plans are prompts, not documents that become prompts.
 
@@ -112,7 +118,7 @@ Discovery is MANDATORY unless you can prove current context exists.
 - Level 2+: New library not in package.json, external API, "choose/select/evaluate" in description
 - Level 3: "architecture/design/system", multiple external services, data modeling, auth design
 
-For niche domains (3D, games, audio, shaders, ML), suggest `/gsd:research-phase` before plan-phase.
+For niche domains (3D, games, audio, shaders, ML), suggest `gsd research-phase` before plan-phase.
 
 </discovery_levels>
 
@@ -407,8 +413,8 @@ Output: [What artifacts will be created]
 </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/execute-plan.md
-@~/.claude/get-shit-done/templates/summary.md
+@~/.copilot/get-shit-done/workflows/execute-plan.md
+@~/.copilot/get-shit-done/templates/summary.md
 </execution_context>
 
 <context>
@@ -953,9 +959,9 @@ After making edits, self-check:
 
 ### Step 6: Commit Revised Plans
 
-**If `COMMIT_PLANNING_DOCS=false`:** Skip git operations, log "Skipping planning docs commit (commit_docs: false)"
+**If `COMMIT_DOCS=false`:** Skip git operations, log "Skipping planning docs commit (commit_docs: false)"
 
-**If `COMMIT_PLANNING_DOCS=true` (default):**
+**If `COMMIT_DOCS=true` (default):**
 
 ```bash
 git add .planning/phases/$PHASE-*/$PHASE-*-PLAN.md
@@ -1006,13 +1012,13 @@ If STATE.md missing but .planning/ exists, offer to reconstruct or continue with
 **Load planning config:**
 
 ```bash
-# Check if planning docs should be committed (default: true)
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+# Check if git operations are enabled (default: true)
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
 # Auto-detect gitignored (overrides config)
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
 
-Store `COMMIT_PLANNING_DOCS` for use in git operations.
+Store `COMMIT_DOCS` for use in git operations. When `false`, skip ALL git commands.
 </step>
 
 <step name="load_codebase_context">
@@ -1097,10 +1103,10 @@ Understand:
 PADDED_PHASE=$(printf "%02d" $PHASE 2>/dev/null || echo "$PHASE")
 PHASE_DIR=$(ls -d .planning/phases/$PADDED_PHASE-* .planning/phases/$PHASE-* 2>/dev/null | head -1)
 
-# Read CONTEXT.md if exists (from /gsd:discuss-phase)
+# Read CONTEXT.md if exists (from gsd discuss-phase)
 cat "$PHASE_DIR"/*-CONTEXT.md 2>/dev/null
 
-# Read RESEARCH.md if exists (from /gsd:research-phase)
+# Read RESEARCH.md if exists (from gsd research-phase)
 cat "$PHASE_DIR"/*-RESEARCH.md 2>/dev/null
 
 # Read DISCOVERY.md if exists (from mandatory discovery)
@@ -1208,7 +1214,7 @@ Update ROADMAP.md to finalize phase placeholders created by add-phase or insert-
 
 **Plans** (always update):
 - `**Plans:** 0 plans` → `**Plans:** {N} plans`
-- `**Plans:** (created by /gsd:plan-phase)` → `**Plans:** {N} plans`
+- `**Plans:** (created by gsd plan-phase)` → `**Plans:** {N} plans`
 
 **Plan list** (always update):
 - Replace `Plans:\n- [ ] TBD ...` with actual plan checkboxes:
@@ -1224,9 +1230,9 @@ Update ROADMAP.md to finalize phase placeholders created by add-phase or insert-
 <step name="git_commit">
 Commit phase plan(s) and updated roadmap:
 
-**If `COMMIT_PLANNING_DOCS=false`:** Skip git operations, log "Skipping planning docs commit (commit_docs: false)"
+**If `COMMIT_DOCS=false`:** Skip git operations, log "Skipping planning docs commit (commit_docs: false)"
 
-**If `COMMIT_PLANNING_DOCS=true` (default):**
+**If `COMMIT_DOCS=true` (default):**
 
 ```bash
 git add .planning/phases/$PHASE-*/$PHASE-*-PLAN.md .planning/ROADMAP.md
@@ -1271,7 +1277,7 @@ Return structured planning outcome to orchestrator.
 
 ### Next Steps
 
-Execute: `/gsd:execute-phase {phase}`
+Execute: `gsd execute-phase {phase}`
 
 <sub>`/clear` first - fresh context window</sub>
 ```
@@ -1315,7 +1321,7 @@ Execute: `/gsd:execute-phase {phase}`
 
 ### Next Steps
 
-Execute: `/gsd:execute-phase {phase} --gaps-only`
+Execute: `gsd execute-phase {phase} --gaps-only`
 ```
 
 ## Revision Complete
@@ -1381,6 +1387,6 @@ Planning complete when:
 - [ ] PLAN file(s) exist with gap_closure: true
 - [ ] Each plan: tasks derived from gap.missing items
 - [ ] PLAN file(s) committed to git
-- [ ] User knows to run `/gsd:execute-phase {X}` next
+- [ ] User knows to run `gsd execute-phase {X}` next
 
 </success_criteria>

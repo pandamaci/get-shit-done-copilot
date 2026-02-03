@@ -1,6 +1,6 @@
 # GSD-STYLE.md
 
-> **Comprehensive reference.** Core rules auto-load from `.claude/rules/`. This document provides deep explanations and examples for when you need the full picture.
+> **Comprehensive reference.** Core rules auto-load from `.copilot/rules/`. This document provides deep explanations and examples for when you need the full picture.
 
 This document explains how GSD is written so future Claude instances can contribute consistently.
 
@@ -164,7 +164,7 @@ Build authentication system
 
 **Static references** (always load):
 ```
-@~/.claude/get-shit-done/workflows/execute-phase.md
+@~/.copilot/get-shit-done/workflows/execute-phase.md
 @.planning/PROJECT.md
 ```
 

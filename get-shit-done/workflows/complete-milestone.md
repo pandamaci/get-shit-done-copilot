@@ -418,7 +418,7 @@ Extract completed milestone details and create archive file.
 
 1. Create archive file path: `.planning/milestones/v[X.Y]-ROADMAP.md`
 
-2. Read `~/.claude/get-shit-done/templates/milestone-archive.md` template
+2. Read `~/.copilot/get-shit-done/templates/milestone-archive.md` template
 
 3. Extract data from current ROADMAP.md:
    - All phases belonging to this milestone (by phase number range)
@@ -765,13 +765,13 @@ Commit milestone completion including archive files and deletions.
 **Check planning config:**
 
 ```bash
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
 
-**If `COMMIT_PLANNING_DOCS=false`:** Skip git operations
+**If `COMMIT_DOCS=false`:** Skip git operations
 
-**If `COMMIT_PLANNING_DOCS=true` (default):**
+**If `COMMIT_DOCS=true` (default):**
 
 ```bash
 # Stage archive files (new)

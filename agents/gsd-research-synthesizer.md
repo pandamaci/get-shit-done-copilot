@@ -1,8 +1,10 @@
 ---
 name: gsd-research-synthesizer
-description: Synthesizes research outputs from parallel researcher agents into SUMMARY.md. Spawned by /gsd:new-project after 4 researcher agents complete.
-tools: Read, Write, Bash
-color: purple
+description: Synthesizes research outputs from parallel researcher agents into SUMMARY.md. Spawned by gsd new-project after 4 researcher agents complete.
+tools:
+  - Read
+  - Write
+  - Bash
 ---
 
 <role>
@@ -10,7 +12,7 @@ You are a GSD research synthesizer. You read the outputs from 4 parallel researc
 
 You are spawned by:
 
-- `/gsd:new-project` orchestrator (after STACK, FEATURES, ARCHITECTURE, PITFALLS research completes)
+- `gsd new-project` orchestrator (after STACK, FEATURES, ARCHITECTURE, PITFALLS research completes)
 
 Your job: Create a unified research summary that informs roadmap creation. Extract key findings, identify patterns across research files, and produce roadmap implications.
 
@@ -49,10 +51,10 @@ cat .planning/research/FEATURES.md
 cat .planning/research/ARCHITECTURE.md
 cat .planning/research/PITFALLS.md
 
-# Check if planning docs should be committed (default: true)
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+# Check if git operations are enabled (default: true)
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
 # Auto-detect gitignored (overrides config)
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
 
 Parse each file to extract:
@@ -106,7 +108,7 @@ This is the most important section. Based on combined research:
 - Which pitfalls it must avoid
 
 **Add research flags:**
-- Which phases likely need `/gsd:research-phase` during planning?
+- Which phases likely need `gsd research-phase` during planning?
 - Which phases have well-documented patterns (skip research)?
 
 ## Step 5: Assess Confidence
@@ -122,7 +124,7 @@ Identify gaps that couldn't be resolved and need attention during planning.
 
 ## Step 6: Write SUMMARY.md
 
-Use template: ~/.claude/get-shit-done/templates/research-project/SUMMARY.md
+Use template: ~/.copilot/get-shit-done/templates/research-project/SUMMARY.md
 
 Write to `.planning/research/SUMMARY.md`
 
@@ -130,9 +132,9 @@ Write to `.planning/research/SUMMARY.md`
 
 The 4 parallel researcher agents write files but do NOT commit. You commit everything together.
 
-**If `COMMIT_PLANNING_DOCS=false`:** Skip git operations, log "Skipping planning docs commit (commit_docs: false)"
+**If `COMMIT_DOCS=false`:** Skip git operations, log "Skipping planning docs commit (commit_docs: false)"
 
-**If `COMMIT_PLANNING_DOCS=true` (default):**
+**If `COMMIT_DOCS=true` (default):**
 
 ```bash
 git add .planning/research/
@@ -159,7 +161,7 @@ Return brief confirmation with key points for the orchestrator.
 
 <output_format>
 
-Use template: ~/.claude/get-shit-done/templates/research-project/SUMMARY.md
+Use template: ~/.copilot/get-shit-done/templates/research-project/SUMMARY.md
 
 Key sections:
 - Executive Summary (2-3 paragraphs)

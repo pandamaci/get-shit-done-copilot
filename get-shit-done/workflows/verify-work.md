@@ -15,7 +15,7 @@ No Pass/Fail buttons. No severity questions. Just: "Here's what should happen. D
 </philosophy>
 
 <template>
-@~/.claude/get-shit-done/templates/UAT.md
+@~/.copilot/get-shit-done/templates/UAT.md
 </template>
 
 <process>
@@ -307,13 +307,13 @@ Clear Current Test section:
 **Check planning config:**
 
 ```bash
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
 
-**If `COMMIT_PLANNING_DOCS=false`:** Skip git operations
+**If `COMMIT_DOCS=false`:** Skip git operations
 
-**If `COMMIT_PLANNING_DOCS=true` (default):**
+**If `COMMIT_DOCS=true` (default):**
 
 Commit the UAT file:
 ```bash
@@ -360,7 +360,7 @@ Spawning parallel debug agents to investigate each issue.
 ```
 
 - Load diagnose-issues workflow
-- Follow @~/.claude/get-shit-done/workflows/diagnose-issues.md
+- Follow @~/.copilot/get-shit-done/workflows/diagnose-issues.md
 - Spawn parallel debug agents for each issue
 - Collect root causes
 - Update UAT.md with root causes
@@ -439,11 +439,12 @@ Task(
   prompt="""
 <verification_context>
 
+**Project root:** {absolute_project_root}
 **Phase:** {phase_number}
 **Phase Goal:** Close diagnosed gaps from UAT
 
 **Plans to verify:**
-@.planning/phases/{phase_dir}/*-PLAN.md
+@{absolute_phase_dir}/*-PLAN.md
 
 </verification_context>
 
@@ -452,6 +453,8 @@ Return one of:
 - ## VERIFICATION PASSED — all checks pass
 - ## ISSUES FOUND — structured issue list
 </expected_output>
+
+IMPORTANT: Use the absolute paths provided above. Do not assume current working directory contains .planning/.
 """,
   subagent_type="gsd-plan-checker",
   model="{checker_model}",

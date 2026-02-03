@@ -2,6 +2,42 @@
 Execute all plans in a phase using wave-based parallel execution. Orchestrator stays lean by delegating plan execution to subagents.
 </purpose>
 
+<destructive_commands_forbidden>
+**NEVER run these commands:**
+
+- `git clean` — Deletes untracked files including .planning/ when gitignored
+- `git stash` — Can lose uncommitted work
+- `git reset --hard` — Destroys uncommitted changes
+- `git checkout -- .` — Reverts all changes
+- `rm -rf` on any directory without explicit user permission
+
+**If working tree is dirty:**
+- Do NOT clean it automatically
+- Ask user: "Working tree has uncommitted changes. Commit them first or continue anyway?"
+- Never delete or stash user's work without explicit permission
+
+**.planning/ is sacred:**
+- NEVER delete .planning/ or its contents
+- NEVER run git clean on .planning/
+- .planning/ may be gitignored — this means it's LOCAL ONLY and irreplaceable
+</destructive_commands_forbidden>
+
+<stay_on_task>
+**Do NOT:**
+- Research how tools work — you already know
+- Fetch documentation for Claude, Copilot, or any AI tool
+- Debug model support errors by researching
+- Spawn "general-purpose" agents for troubleshooting
+- Try to fix infrastructure/tool problems
+
+**If you encounter errors:**
+- Report the error to the user clearly
+- STOP and let the user fix infrastructure issues
+- Do NOT attempt workarounds or research
+
+**Your only job:** Execute the PLAN.md tasks, commit results, update STATE.md.
+</stay_on_task>
+
 <core_principle>
 The orchestrator's job is coordination, not execution. Each subagent loads the full execute-plan context itself. Orchestrator discovers plans, analyzes dependencies, groups into waves, spawns agents, handles checkpoints, collects results.
 </core_principle>
@@ -58,13 +94,13 @@ Options:
 **Load planning config:**
 
 ```bash
-# Check if planning docs should be committed (default: true)
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+# Check if git operations are enabled (default: true)
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
 # Auto-detect gitignored (overrides config)
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
 
-Store `COMMIT_PLANNING_DOCS` for use in git operations.
+Store `COMMIT_DOCS` for use in git operations. When `false`, skip ALL git commands.
 
 **Load git branching config:**
 
@@ -286,10 +322,10 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel.
    </objective>
 
    <execution_context>
-   @~/.claude/get-shit-done/workflows/execute-plan.md
-   @~/.claude/get-shit-done/templates/summary.md
-   @~/.claude/get-shit-done/references/checkpoints.md
-   @~/.claude/get-shit-done/references/tdd.md
+   @~/.copilot/get-shit-done/workflows/execute-plan.md
+   @~/.copilot/get-shit-done/templates/summary.md
+   @~/.copilot/get-shit-done/references/checkpoints.md
+   @~/.copilot/get-shit-done/references/tdd.md
    </execution_context>
 
    <context>
@@ -581,13 +617,12 @@ Update ROADMAP.md to reflect phase completion:
 
 **Check planning config:**
 
-If `COMMIT_PLANNING_DOCS=false` (set in load_project_state):
-- Skip all git operations for .planning/ files
-- Planning docs exist locally but are gitignored
+If `COMMIT_DOCS=false` (set in load_project_state):
+- Skip all git operations
 - Log: "Skipping planning docs commit (commit_docs: false)"
 - Proceed to offer_next step
 
-If `COMMIT_PLANNING_DOCS=true` (default):
+If `COMMIT_DOCS=true` (default):
 - Continue with git operations below
 
 Commit phase completion (roadmap, state, verification):

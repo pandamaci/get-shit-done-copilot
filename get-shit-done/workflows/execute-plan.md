@@ -6,7 +6,7 @@ Execute a phase prompt (PLAN.md) and create the outcome summary (SUMMARY.md).
 Read STATE.md before any operation to load project context.
 Read config.json for planning behavior settings.
 
-@~/.claude/get-shit-done/references/git-integration.md
+@~/.copilot/get-shit-done/references/git-integration.md
 </required_reading>
 
 <process>
@@ -59,13 +59,13 @@ This ensures every execution has full project context.
 **Load planning config:**
 
 ```bash
-# Check if planning docs should be committed (default: true)
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+# Check if git operations are enabled (default: true)
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
 # Auto-detect gitignored (overrides config)
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
 
-Store `COMMIT_PLANNING_DOCS` for use in git operations.
+Store `COMMIT_DOCS` for use in git operations. When `false`, skip ALL git commands.
 </step>
 
 <step name="identify_plan">
@@ -958,7 +958,7 @@ After TDD plan completion, ensure:
 - Standard plans: Multiple tasks, 1 commit per task, 2-4 commits total
 - TDD plans: Single feature, 2-3 commits for RED/GREEN/REFACTOR cycle
 
-See `~/.claude/get-shit-done/references/tdd.md` for TDD plan structure.
+See `~/.copilot/get-shit-done/references/tdd.md` for TDD plan structure.
 </tdd_plan_execution>
 
 <task_commit>
@@ -1126,7 +1126,7 @@ I'll verify after: [verification]
 - If verification passes or N/A: continue to next task
 - If verification fails: inform user, wait for resolution
 
-See ~/.claude/get-shit-done/references/checkpoints.md for complete checkpoint guidance.
+See ~/.copilot/get-shit-done/references/checkpoints.md for complete checkpoint guidance.
 </step>
 
 <step name="checkpoint_return_for_orchestrator">
@@ -1260,7 +1260,7 @@ grep -A 50 "^user_setup:" .planning/phases/XX-name/{phase}-{plan}-PLAN.md | head
 
 **If user_setup exists and is not empty:**
 
-Create `.planning/phases/XX-name/{phase}-USER-SETUP.md` using template from `~/.claude/get-shit-done/templates/user-setup.md`.
+Create `.planning/phases/XX-name/{phase}-USER-SETUP.md` using template from `~/.copilot/get-shit-done/templates/user-setup.md`.
 
 **Content generation:**
 
@@ -1321,7 +1321,7 @@ Set `USER_SETUP_CREATED=true` if file was generated, for use in completion messa
 
 <step name="create_summary">
 Create `{phase}-{plan}-SUMMARY.md` as specified in the prompt's `<output>` section.
-Use ~/.claude/get-shit-done/templates/summary.md for structure.
+Use ~/.copilot/get-shit-done/templates/summary.md for structure.
 
 **File location:** `.planning/phases/XX-name/{phase}-{plan}-SUMMARY.md`
 
@@ -1515,13 +1515,12 @@ PLAN.md was already committed during plan-phase. This final commit captures exec
 
 **Check planning config:**
 
-If `COMMIT_PLANNING_DOCS=false` (set in load_project_state):
-- Skip all git operations for .planning/ files
-- Planning docs exist locally but are gitignored
+If `COMMIT_DOCS=false` (set in load_project_state):
+- Skip all git operations
 - Log: "Skipping planning docs commit (commit_docs: false)"
 - Proceed to next step
 
-If `COMMIT_PLANNING_DOCS=true` (default):
+If `COMMIT_DOCS=true` (default):
 - Continue with git operations below
 
 **1. Stage execution artifacts:**

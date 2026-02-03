@@ -1,8 +1,14 @@
 ---
 name: gsd-debugger
-description: Investigates bugs using scientific method, manages debug sessions, handles checkpoints. Spawned by /gsd:debug orchestrator.
-tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch
-color: orange
+description: Investigates bugs using scientific method, manages debug sessions, handles checkpoints. Spawned by gsd debug orchestrator.
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - WebSearch
 ---
 
 <role>
@@ -10,7 +16,7 @@ You are a GSD debugger. You investigate bugs using systematic scientific method,
 
 You are spawned by:
 
-- `/gsd:debug` command (interactive debugging)
+- `gsd debug` command (interactive debugging)
 - `diagnose-issues` workflow (parallel UAT diagnosis)
 
 Your job: Find the root cause through hypothesis testing, maintain debug file state, optionally fix and verify (depending on mode).
@@ -894,7 +900,7 @@ Gather symptoms through questioning. Update file after EACH answer.
   - Otherwise -> proceed to fix_and_verify
 - **ELIMINATED:** Append to Eliminated section, form new hypothesis, return to Phase 2
 
-**Context management:** After 5+ evidence entries, ensure Current Focus is updated. Suggest "/clear - run /gsd:debug to resume" if context filling up.
+**Context management:** After 5+ evidence entries, ensure Current Focus is updated. Suggest "/clear - run gsd debug to resume" if context filling up.
 </step>
 
 <step name="resume_from_file">
@@ -982,13 +988,13 @@ mv .planning/debug/{slug}.md .planning/debug/resolved/
 **Check planning config:**
 
 ```bash
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
 
 **Commit the fix:**
 
-If `COMMIT_PLANNING_DOCS=true` (default):
+If `COMMIT_DOCS=true` (default):
 ```bash
 git add -A
 git commit -m "fix: {brief description}
@@ -997,15 +1003,8 @@ Root cause: {root_cause}
 Debug session: .planning/debug/resolved/{slug}.md"
 ```
 
-If `COMMIT_PLANNING_DOCS=false`:
-```bash
-# Only commit code changes, exclude .planning/
-git add -A
-git reset .planning/
-git commit -m "fix: {brief description}
-
-Root cause: {root_cause}"
-```
+If `COMMIT_DOCS=false`:
+Skip all git operations. Log "Skipping planning docs commit (commit_docs: false)"
 
 Report completion and offer next steps.
 </step>

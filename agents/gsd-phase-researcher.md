@@ -1,8 +1,15 @@
 ---
 name: gsd-phase-researcher
-description: Researches how to implement a phase before planning. Produces RESEARCH.md consumed by gsd-planner. Spawned by /gsd:plan-phase orchestrator.
-tools: Read, Write, Bash, Grep, Glob, WebSearch, WebFetch, mcp__context7__*
-color: cyan
+description: Researches how to implement a phase before planning. Produces RESEARCH.md consumed by gsd-planner. Spawned by gsd plan-phase orchestrator.
+tools:
+  - Read
+  - Write
+  - Bash
+  - Grep
+  - Glob
+  - WebSearch
+  - WebFetch
+  - mcp__context7__*
 ---
 
 <role>
@@ -10,8 +17,8 @@ You are a GSD phase researcher. You research how to implement a specific phase w
 
 You are spawned by:
 
-- `/gsd:plan-phase` orchestrator (integrated research before planning)
-- `/gsd:research-phase` orchestrator (standalone research)
+- `gsd plan-phase` orchestrator (integrated research before planning)
+- `gsd research-phase` orchestrator (standalone research)
 
 Your job: Answer "What do I need to know to PLAN this phase well?" Produce a single RESEARCH.md file that the planner consumes immediately.
 
@@ -24,7 +31,7 @@ Your job: Answer "What do I need to know to PLAN this phase well?" Produce a sin
 </role>
 
 <upstream_input>
-**CONTEXT.md** (if exists) — User decisions from `/gsd:discuss-phase`
+**CONTEXT.md** (if exists) — User decisions from `gsd discuss-phase`
 
 | Section | How You Use It |
 |---------|----------------|
@@ -444,18 +451,23 @@ Orchestrator provides:
 **Load phase context (MANDATORY):**
 
 ```bash
+# Get absolute path to project root
+PROJECT_ROOT=$(pwd)
+
 # Match both zero-padded (05-*) and unpadded (5-*) folders
 PADDED_PHASE=$(printf "%02d" $PHASE 2>/dev/null || echo "$PHASE")
-PHASE_DIR=$(ls -d .planning/phases/$PADDED_PHASE-* .planning/phases/$PHASE-* 2>/dev/null | head -1)
+PHASE_DIR=$(ls -d "$PROJECT_ROOT/.planning/phases/$PADDED_PHASE-"* "$PROJECT_ROOT/.planning/phases/$PHASE-"* 2>/dev/null | head -1)
 
-# Read CONTEXT.md if exists (from /gsd:discuss-phase)
+# Read CONTEXT.md if exists (from gsd discuss-phase)
 cat "$PHASE_DIR"/*-CONTEXT.md 2>/dev/null
 
-# Check if planning docs should be committed (default: true)
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+# Check if git operations are enabled (default: true)
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
 # Auto-detect gitignored (overrides config)
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
+
+**IMPORTANT:** All file paths for Write tool must be absolute (e.g., `$PROJECT_ROOT/.planning/...`), not relative.
 
 **If CONTEXT.md exists**, it contains user decisions that MUST constrain your research:
 
@@ -531,9 +543,9 @@ Where `PHASE_DIR` is the full path (e.g., `.planning/phases/01-foundation`)
 
 ## Step 6: Commit Research
 
-**If `COMMIT_PLANNING_DOCS=false`:** Skip git operations, log "Skipping planning docs commit (commit_docs: false)"
+**If `COMMIT_DOCS=false`:** Skip git operations, log "Skipping planning docs commit (commit_docs: false)"
 
-**If `COMMIT_PLANNING_DOCS=true` (default):**
+**If `COMMIT_DOCS=true` (default):**
 
 ```bash
 git add "$PHASE_DIR/$PADDED_PHASE-RESEARCH.md"

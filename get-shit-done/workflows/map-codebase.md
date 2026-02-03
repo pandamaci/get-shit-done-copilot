@@ -40,33 +40,40 @@ Default to "balanced" if not set.
 Store resolved model for use in Task calls below.
 </step>
 
-<step name="check_existing">
+<step name="check_existing" priority="blocking">
+**CRITICAL: This step MUST run before any mapping begins.**
+
 Check if .planning/codebase/ already exists:
 
 ```bash
-ls -la .planning/codebase/ 2>/dev/null
+ls -la .planning/codebase/ 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
 ```
 
-**If exists:**
+**If directory exists with files:**
+
+You MUST present this choice to the user using AskUserQuestion:
 
 ```
 .planning/codebase/ already exists with these documents:
-[List files found]
+[List files found with line counts: wc -l .planning/codebase/*.md]
 
-What's next?
-1. Refresh - Delete existing and remap codebase
-2. Update - Keep existing, only update specific documents
-3. Skip - Use existing codebase map as-is
+What would you like to do?
 ```
 
-Wait for user response.
+Options:
+1. **Refresh** - Delete existing and remap entire codebase from scratch
+2. **Update specific** - Keep existing, only regenerate specific documents
+3. **Skip** - Use existing codebase map as-is (no changes)
 
-If "Refresh": Delete .planning/codebase/, continue to create_structure
-If "Update": Ask which documents to update, continue to spawn_agents (filtered)
-If "Skip": Exit workflow
+**STOP AND WAIT for user response. Do NOT proceed without explicit choice.**
 
-**If doesn't exist:**
-Continue to create_structure.
+Based on user choice:
+- "Refresh": `rm -rf .planning/codebase/`, continue to create_structure
+- "Update specific": Ask which documents to update, spawn only relevant agents
+- "Skip": Display "Using existing codebase map." and exit workflow immediately
+
+**If directory doesn't exist or is empty:**
+Continue to create_structure (no prompt needed).
 </step>
 
 <step name="create_structure">
@@ -236,13 +243,13 @@ Commit the codebase map:
 **Check planning config:**
 
 ```bash
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+COMMIT_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+git check-ignore -q .planning 2>/dev/null && COMMIT_DOCS=false
 ```
 
-**If `COMMIT_PLANNING_DOCS=false`:** Skip git operations
+**If `COMMIT_DOCS=false`:** Skip git operations
 
-**If `COMMIT_PLANNING_DOCS=true` (default):**
+**If `COMMIT_DOCS=true` (default):**
 
 ```bash
 git add .planning/codebase/*.md

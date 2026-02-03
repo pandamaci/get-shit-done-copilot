@@ -22,6 +22,7 @@ const hasLocal = args.includes('--local') || args.includes('-l');
 const hasOpencode = args.includes('--opencode');
 const hasClaude = args.includes('--claude');
 const hasGemini = args.includes('--gemini');
+const hasCopilot = args.includes('--copilot');
 const hasBoth = args.includes('--both'); // Legacy flag, keeps working
 const hasAll = args.includes('--all');
 const hasUninstall = args.includes('--uninstall') || args.includes('-u');
@@ -29,19 +30,21 @@ const hasUninstall = args.includes('--uninstall') || args.includes('-u');
 // Runtime selection - can be set by flags or interactive prompt
 let selectedRuntimes = [];
 if (hasAll) {
-  selectedRuntimes = ['claude', 'opencode', 'gemini'];
+  selectedRuntimes = ['claude', 'opencode', 'gemini', 'copilot'];
 } else if (hasBoth) {
   selectedRuntimes = ['claude', 'opencode'];
 } else {
   if (hasOpencode) selectedRuntimes.push('opencode');
   if (hasClaude) selectedRuntimes.push('claude');
   if (hasGemini) selectedRuntimes.push('gemini');
+  if (hasCopilot) selectedRuntimes.push('copilot');
 }
 
 // Helper to get directory name for a runtime (used for local/project installs)
 function getDirName(runtime) {
   if (runtime === 'opencode') return '.opencode';
   if (runtime === 'gemini') return '.gemini';
+  if (runtime === 'copilot') return '.copilot';
   return '.claude';
 }
 
@@ -94,7 +97,18 @@ function getGlobalDir(runtime, explicitDir = null) {
     }
     return path.join(os.homedir(), '.gemini');
   }
-  
+
+  if (runtime === 'copilot') {
+    // Copilot: --config-dir > COPILOT_CONFIG_DIR > ~/.copilot
+    if (explicitDir) {
+      return expandTilde(explicitDir);
+    }
+    if (process.env.COPILOT_CONFIG_DIR) {
+      return expandTilde(process.env.COPILOT_CONFIG_DIR);
+    }
+    return path.join(os.homedir(), '.copilot');
+  }
+
   // Claude Code: --config-dir > CLAUDE_CONFIG_DIR > ~/.claude
   if (explicitDir) {
     return expandTilde(explicitDir);
@@ -149,7 +163,7 @@ console.log(banner);
 
 // Show help if requested
 if (hasHelp) {
-  console.log(`  ${yellow}Usage:${reset} npx get-shit-done-cc [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--all${reset}                     Install for all runtimes\n    ${cyan}-u, --uninstall${reset}           Uninstall GSD (remove all GSD files)\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\n    ${cyan}-h, --help${reset}                Show this help message\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\n\n  ${yellow}Examples:${reset}\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\n    npx get-shit-done-cc\n\n    ${dim}# Install for Claude Code globally${reset}\n    npx get-shit-done-cc --claude --global\n\n    ${dim}# Install for Gemini globally${reset}\n    npx get-shit-done-cc --gemini --global\n\n    ${dim}# Install for all runtimes globally${reset}\n    npx get-shit-done-cc --all --global\n\n    ${dim}# Install to custom config directory${reset}\n    npx get-shit-done-cc --claude --global --config-dir ~/.claude-bc\n\n    ${dim}# Install to current project only${reset}\n    npx get-shit-done-cc --claude --local\n\n    ${dim}# Uninstall GSD from Claude Code globally${reset}\n    npx get-shit-done-cc --claude --global --uninstall\n\n  ${yellow}Notes:${reset}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR environment variables.\n`);
+  console.log(`  ${yellow}Usage:${reset} npx get-shit-done-cc [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--copilot${reset}                 Install for Copilot only\n    ${cyan}--all${reset}                     Install for all runtimes\n    ${cyan}-u, --uninstall${reset}           Uninstall GSD (remove all GSD files)\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\n    ${cyan}-h, --help${reset}                Show this help message\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\n\n  ${yellow}Examples:${reset}\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\n    npx get-shit-done-cc\n\n    ${dim}# Install for Claude Code globally${reset}\n    npx get-shit-done-cc --claude --global\n\n    ${dim}# Install for Copilot globally${reset}\n    npx get-shit-done-cc --copilot --global\n\n    ${dim}# Install for Gemini globally${reset}\n    npx get-shit-done-cc --gemini --global\n\n    ${dim}# Install for all runtimes globally${reset}\n    npx get-shit-done-cc --all --global\n\n    ${dim}# Install to custom config directory${reset}\n    npx get-shit-done-cc --claude --global --config-dir ~/.claude-bc\n\n    ${dim}# Install to current project only${reset}\n    npx get-shit-done-cc --claude --local\n\n    ${dim}# Uninstall GSD from Claude Code globally${reset}\n    npx get-shit-done-cc --claude --global --uninstall\n\n  ${yellow}Notes:${reset}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / COPILOT_CONFIG_DIR environment variables.\n`);
   process.exit(0);
 }
 
@@ -192,71 +206,6 @@ function readSettings(settingsPath) {
  */
 function writeSettings(settingsPath, settings) {
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
-}
-
-// Cache for attribution settings (populated once per runtime during install)
-const attributionCache = new Map();
-
-/**
- * Get commit attribution setting for a runtime
- * @param {string} runtime - 'claude', 'opencode', or 'gemini'
- * @returns {null|undefined|string} null = remove, undefined = keep default, string = custom
- */
-function getCommitAttribution(runtime) {
-  // Return cached value if available
-  if (attributionCache.has(runtime)) {
-    return attributionCache.get(runtime);
-  }
-
-  let result;
-
-  if (runtime === 'opencode') {
-    const config = readSettings(path.join(getGlobalDir('opencode', null), 'opencode.json'));
-    result = config.disable_ai_attribution === true ? null : undefined;
-  } else if (runtime === 'gemini') {
-    // Gemini: check gemini settings.json for attribution config
-    const settings = readSettings(path.join(getGlobalDir('gemini', explicitConfigDir), 'settings.json'));
-    if (!settings.attribution || settings.attribution.commit === undefined) {
-      result = undefined;
-    } else if (settings.attribution.commit === '') {
-      result = null;
-    } else {
-      result = settings.attribution.commit;
-    }
-  } else {
-    // Claude Code
-    const settings = readSettings(path.join(getGlobalDir('claude', explicitConfigDir), 'settings.json'));
-    if (!settings.attribution || settings.attribution.commit === undefined) {
-      result = undefined;
-    } else if (settings.attribution.commit === '') {
-      result = null;
-    } else {
-      result = settings.attribution.commit;
-    }
-  }
-
-  // Cache and return
-  attributionCache.set(runtime, result);
-  return result;
-}
-
-/**
- * Process Co-Authored-By lines based on attribution setting
- * @param {string} content - File content to process
- * @param {null|undefined|string} attribution - null=remove, undefined=keep, string=replace
- * @returns {string} Processed content
- */
-function processAttribution(content, attribution) {
-  if (attribution === null) {
-    // Remove Co-Authored-By lines and the preceding blank line
-    return content.replace(/(\r?\n){2}Co-Authored-By:.*$/gim, '');
-  }
-  if (attribution === undefined) {
-    return content;
-  }
-  // Replace with custom attribution (escape $ to prevent backreference injection)
-  const safeAttribution = attribution.replace(/\$/g, '$$$$');
-  return content.replace(/Co-Authored-By:.*$/gim, `Co-Authored-By: ${safeAttribution}`);
 }
 
 /**
@@ -625,7 +574,6 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
       const opencodeDirRegex = /~\/\.opencode\//g;
       content = content.replace(claudeDirRegex, pathPrefix);
       content = content.replace(opencodeDirRegex, pathPrefix);
-      content = processAttribution(content, getCommitAttribution(runtime));
       content = convertClaudeToOpencodeFrontmatter(content);
 
       fs.writeFileSync(destPath, content);
@@ -664,8 +612,7 @@ function copyWithPathReplacement(srcDir, destDir, pathPrefix, runtime) {
       let content = fs.readFileSync(srcPath, 'utf8');
       const claudeDirRegex = /~\/\.claude\//g;
       content = content.replace(claudeDirRegex, pathPrefix);
-      content = processAttribution(content, getCommitAttribution(runtime));
-
+      
       // Convert frontmatter for opencode compatibility
       if (isOpencode) {
         content = convertClaudeToOpencodeFrontmatter(content);
@@ -1053,6 +1000,7 @@ function verifyFileInstalled(filePath, description) {
 function install(isGlobal, runtime = 'claude') {
   const isOpencode = runtime === 'opencode';
   const isGemini = runtime === 'gemini';
+  const isCopilot = runtime === 'copilot';
   const dirName = getDirName(runtime);
   const src = path.join(__dirname, '..');
 
@@ -1075,6 +1023,7 @@ function install(isGlobal, runtime = 'claude') {
   let runtimeLabel = 'Claude Code';
   if (isOpencode) runtimeLabel = 'OpenCode';
   if (isGemini) runtimeLabel = 'Gemini';
+  if (isCopilot) runtimeLabel = 'Copilot';
 
   console.log(`  Installing for ${cyan}${runtimeLabel}${reset} to ${cyan}${locationLabel}${reset}\n`);
 
@@ -1084,9 +1033,13 @@ function install(isGlobal, runtime = 'claude') {
   // Clean up orphaned files from previous versions
   cleanupOrphanedFiles(targetDir);
 
+  // Copilot: skip commands directory entirely (uses agents directly)
   // OpenCode uses 'command/' (singular) with flat structure
   // Claude Code & Gemini use 'commands/' (plural) with nested structure
-  if (isOpencode) {
+  if (isCopilot) {
+    // Copilot doesn't use commands directory - agents are invoked directly
+    console.log(`  ${dim}Skipping commands (Copilot uses agents directly)${reset}`);
+  } else if (isOpencode) {
     // OpenCode: flat structure in command/ directory
     const commandDir = path.join(targetDir, 'command');
     fs.mkdirSync(commandDir, { recursive: true });
@@ -1148,7 +1101,6 @@ function install(isGlobal, runtime = 'claude') {
         // Always replace ~/.claude/ as it is the source of truth in the repo
         const dirRegex = /~\/\.claude\//g;
         content = content.replace(dirRegex, pathPrefix);
-        content = processAttribution(content, getCommitAttribution(runtime));
         // Convert frontmatter for runtime compatibility
         if (isOpencode) {
           content = convertClaudeToOpencodeFrontmatter(content);
@@ -1287,8 +1239,10 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   let program = 'Claude Code';
   if (runtime === 'opencode') program = 'OpenCode';
   if (runtime === 'gemini') program = 'Gemini';
+  if (runtime === 'copilot') program = 'Copilot';
 
-  const command = isOpencode ? '/gsd-help' : '/gsd:help';
+  const isCopilot = runtime === 'copilot';
+  const command = isOpencode ? '/gsd-help' : (isCopilot ? 'gsd help' : '/gsd:help');
   console.log(`
   ${green}Done!${reset} Launch ${program} and run ${cyan}${command}${reset}.
 
@@ -1369,15 +1323,18 @@ function promptRuntime(callback) {
   console.log(`  ${yellow}Which runtime(s) would you like to install for?${reset}\n\n  ${cyan}1${reset}) Claude Code ${dim}(~/.claude)${reset}
   ${cyan}2${reset}) OpenCode    ${dim}(~/.config/opencode)${reset} - open source, free models
   ${cyan}3${reset}) Gemini      ${dim}(~/.gemini)${reset}
-  ${cyan}4${reset}) All
+  ${cyan}4${reset}) Copilot     ${dim}(~/.copilot)${reset}
+  ${cyan}5${reset}) All
 `);
 
   rl.question(`  Choice ${dim}[1]${reset}: `, (answer) => {
     answered = true;
     rl.close();
     const choice = answer.trim() || '1';
-    if (choice === '4') {
-      callback(['claude', 'opencode', 'gemini']);
+    if (choice === '5') {
+      callback(['claude', 'opencode', 'gemini', 'copilot']);
+    } else if (choice === '4') {
+      callback(['copilot']);
     } else if (choice === '3') {
       callback(['gemini']);
     } else if (choice === '2') {
@@ -1447,14 +1404,15 @@ function installAllRuntimes(runtimes, isGlobal, isInteractive) {
   // Handle statusline for Claude & Gemini (OpenCode uses themes)
   const claudeResult = results.find(r => r.runtime === 'claude');
   const geminiResult = results.find(r => r.runtime === 'gemini');
+  const copilotResult = results.find(r => r.runtime === 'copilot');
 
   // Logic: if both are present, ask once if interactive? Or ask for each?
   // Simpler: Ask once and apply to both if applicable.
-  
+
   if (claudeResult || geminiResult) {
     // Use whichever settings exist to check for existing statusline
     const primaryResult = claudeResult || geminiResult;
-    
+
     handleStatusline(primaryResult.settings, isInteractive, (shouldInstallStatusline) => {
       if (claudeResult) {
         finishInstall(claudeResult.settingsPath, claudeResult.settings, claudeResult.statuslineCommand, shouldInstallStatusline, 'claude');
@@ -1462,16 +1420,26 @@ function installAllRuntimes(runtimes, isGlobal, isInteractive) {
       if (geminiResult) {
          finishInstall(geminiResult.settingsPath, geminiResult.settings, geminiResult.statuslineCommand, shouldInstallStatusline, 'gemini');
       }
-      
+
       const opencodeResult = results.find(r => r.runtime === 'opencode');
       if (opencodeResult) {
         finishInstall(opencodeResult.settingsPath, opencodeResult.settings, opencodeResult.statuslineCommand, false, 'opencode');
       }
+
+      // Copilot: no statusline support
+      if (copilotResult) {
+        finishInstall(copilotResult.settingsPath, copilotResult.settings, copilotResult.statuslineCommand, false, 'copilot');
+      }
     });
   } else {
-    // Only OpenCode
-    const opencodeResult = results[0];
-    finishInstall(opencodeResult.settingsPath, opencodeResult.settings, opencodeResult.statuslineCommand, false, 'opencode');
+    // Only OpenCode or Copilot (no statusline)
+    const opencodeResult = results.find(r => r.runtime === 'opencode');
+    if (opencodeResult) {
+      finishInstall(opencodeResult.settingsPath, opencodeResult.settings, opencodeResult.statuslineCommand, false, 'opencode');
+    }
+    if (copilotResult) {
+      finishInstall(copilotResult.settingsPath, copilotResult.settings, copilotResult.statuslineCommand, false, 'copilot');
+    }
   }
 }
 

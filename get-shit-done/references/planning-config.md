@@ -4,6 +4,7 @@ Configuration options for `.planning/` directory behavior.
 
 <config_schema>
 ```json
+"language": "en",
 "planning": {
   "commit_docs": true,
   "search_gitignored": false
@@ -17,12 +18,44 @@ Configuration options for `.planning/` directory behavior.
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| `language` | `"en"` | Language for GSD communication (e.g., `"en"`, `"hu"`, `"de"`, `"es"`) |
 | `commit_docs` | `true` | Whether to commit planning artifacts to git |
 | `search_gitignored` | `false` | Add `--no-ignore` to broad rg searches |
 | `git.branching_strategy` | `"none"` | Git branching approach: `"none"`, `"phase"`, or `"milestone"` |
 | `git.phase_branch_template` | `"gsd/phase-{phase}-{slug}"` | Branch template for phase strategy |
 | `git.milestone_branch_template` | `"gsd/{milestone}-{slug}"` | Branch template for milestone strategy |
 </config_schema>
+
+<language_behavior>
+
+**Language Configuration:**
+
+All GSD agents should communicate with the user in the configured language.
+
+**Checking the language:**
+
+```bash
+LANGUAGE=$(cat .planning/config.json 2>/dev/null | grep -o '"language"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' || echo "en")
+```
+
+**How agents use this:**
+
+- All user-facing output (banners, questions, summaries) should be in the configured language
+- Technical terms (file names, code, commands) remain in English
+- If language is not set, default to English
+
+**Supported languages:**
+
+| Code | Language |
+|------|----------|
+| `en` | English (default) |
+| `hu` | Hungarian |
+| `de` | German |
+| `es` | Spanish |
+| `fr` | French |
+| (any) | Any ISO 639-1 code |
+
+</language_behavior>
 
 <commit_docs_behavior>
 

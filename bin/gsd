@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# GSD Wrapper for GitHub Copilot CLI
+# Maps gsd commands to specific agents dynamically
+
+# Check if gh is installed
+if ! command -v gh &> /dev/null; then
+    echo "Error: 'gh' command not found. Please install GitHub CLI."
+    exit 1
+fi
+
+COMMAND="$1"
+shift
+
+# Handle help
+if [[ "$COMMAND" == "--help" || "$COMMAND" == "-h" ]]; then
+    echo "Usage: gsd [agent-suffix] [prompt]"
+    echo ""
+    echo "Example:"
+    echo "  gsd planner \"Create a plan for...\"   -> Calls gh copilot --agent gsd-planner"
+    echo "  gsd executor \"Execute task 1\"        -> Calls gh copilot --agent gsd-executor"
+    echo ""
+    echo "Any 'gsd {name}' command maps to 'gh copilot --agent gsd-{name}'"
+    exit 0
+fi
+
+# Ensure a command is provided
+if [ -z "$COMMAND" ]; then
+     echo "Usage: gsd [agent-suffix] [prompt]"
+     echo "Run 'gsd --help' for more info."
+     exit 1
+fi
+
+# Map aliases
+case "$COMMAND" in
+    "research") AGENT_SUFFIX="phase-researcher" ;;
+    *) AGENT_SUFFIX="$COMMAND" ;;
+esac
+
+# Construct Agent Name
+AGENT="gsd-$AGENT_SUFFIX"
+
+# Ensure there is a prompt
+if [ $# -eq 0 ]; then
+    echo "Error: Please provide a prompt for $AGENT"
+    echo "Usage: gsd $COMMAND \"your objective\""
+    exit 1
+fi
+
+# Execute the agent command
+# We use "$*" to pass the rest of arguments as a single prompt string
+gh copilot --agent "$AGENT" --prompt "$*"
